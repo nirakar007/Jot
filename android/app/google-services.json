@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "41560791957",
+    "firebase_url": "https://yeehaw-ae460-default-rtdb.firebaseio.com",
+    "project_id": "yeehaw-ae460",
+    "storage_bucket": "yeehaw-ae460.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:41560791957:android:966189010fdf79efc4349c",
+        "android_client_info": {
+          "package_name": "com.example.jot_notes"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDcyszUVwyMEvYUQbe6sdkbv7CIocQrIOs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
