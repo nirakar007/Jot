@@ -58,23 +58,27 @@ class _EditScreenState extends State<EditScreen> {
             children: [
               TextField(
                 controller: _titleController,
-                style: const TextStyle(color: Colors.white, fontSize: 30),
+                style: const TextStyle(color: Colors.white, fontSize: 30, fontFamily: 'SyneMono', fontWeight: FontWeight.bold),
                 decoration: const InputDecoration(
                     border: InputBorder.none,
                     hintText: 'Title',
-                    hintStyle: TextStyle(color: Colors.grey, fontSize: 30)),
+                    hintStyle: TextStyle(color: Colors.grey, fontSize: 30, fontFamily: 'SyneMono')),
               ),
+
               TextField(
                 controller: _contentController,
                 style: const TextStyle(
                   color: Colors.white,
+                    fontFamily: 'SyneMono',
+                  height: 1.5,
                 ),
                 maxLines: null,
                 decoration: const InputDecoration(
                     border: InputBorder.none,
-                    hintText: 'Type something here',
+                    hintText: 'Type something here ...',
                     hintStyle: TextStyle(
                       color: Colors.grey,
+                        fontFamily: 'SyneMono'
                     )),
               ),
             ],

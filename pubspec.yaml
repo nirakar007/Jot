@@ -84,9 +84,27 @@ flutter:
   # list giving the asset and other descriptors for the font. For
   # example:
   fonts:
-     - family: SpecialElite
+     - family: SyneMono
        fonts:
-         - asset: assets/fonts/SpecialElite-Regular.ttf
+         - asset: assets/fonts/SyneMono-Regular.ttf
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
   # For details regarding fonts from package dependencies,

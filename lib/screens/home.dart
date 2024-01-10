@@ -75,7 +75,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(15.0),
                   child: const Text(
                     'Notes',
-                    style: TextStyle(fontSize: 30, color: Colors.black87, fontWeight: FontWeight.w500),
+                    style: TextStyle(fontSize: 30, color: Colors.black87, fontWeight: FontWeight.bold, fontFamily: 'SyneMono'),
 
                   ),
                 ),
@@ -104,7 +104,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             TextField(
               onChanged: onSearchTextChanged,
-              style: const TextStyle(fontSize: 16, color: Colors.white),
+              style: const TextStyle(fontSize: 16, color: Colors.black54, fontFamily: 'SyneMono'),
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 hintText: "Search notes...",
@@ -174,17 +174,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             text: '${filteredNotes[index].title} \n',
                             style: const TextStyle(
                                 color: Colors.black,
+                                fontFamily: 'SyneMono',
                                 fontWeight: FontWeight.bold,
                                 fontSize: 18,
-                                height: 1.5),
+                                height: 2),
                             children: [
                               TextSpan(
                                 text: filteredNotes[index].content,
                                 style: const TextStyle(
                                     color: Colors.black,
+                                    fontFamily: 'SyneMono',
                                     fontWeight: FontWeight.normal,
                                     fontSize: 14,
-                                    height: 1.5),
+                                    height: 3),
                               )
                             ]),
                       ),
@@ -252,14 +254,14 @@ class _HomeScreenState extends State<HomeScreen> {
         context: context,
         builder: (BuildContext context) {
           return AlertDialog(
-            backgroundColor: Colors.grey.shade900,
+            backgroundColor: Colors.grey.shade900.withOpacity(.5),
             icon: const Icon(
               Icons.info,
               color: Colors.grey,
             ),
             title: const Text(
               'Are you sure you want to delete?',
-              style: TextStyle(color: Colors.white),
+              style: TextStyle(color: Colors.white, fontFamily: 'SyneMono' ),
             ),
             content: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -269,13 +271,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(context, true);
                       },
                       style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green),
+                          backgroundColor: Colors.white),
                       child: const SizedBox(
                         width: 60,
                         child: Text(
                           'Yes',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.black54, fontFamily: 'SyneMono'),
                         ),
                       )),
                   ElevatedButton(
@@ -283,13 +285,13 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(context, false);
                       },
                       style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                          ElevatedButton.styleFrom(backgroundColor: Colors.black87),
                       child: const SizedBox(
                         width: 60,
                         child: Text(
                           'No',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white),
+                          style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
                         ),
                       )),
                 ]),
