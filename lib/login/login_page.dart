@@ -1,7 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
+import 'package:jot_notes/screens/home.dart';
 import 'package:jot_notes/screens/mainScreen.dart';
+import 'package:jot_notes/splash/splash_screen.dart';
 
 import '../registration/registration_screen.dart';
 import '../widgets/common_text_field.dart';
@@ -15,67 +17,71 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _unameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  bool visibility = true;
+  bool visibility = false;
   FirebaseAuth auth = FirebaseAuth.instance;
   bool isLoading = false;
 
+  void _showSnackbar(String message, Color backgroundColor) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: backgroundColor,
+      ),
+    );
+  }
+
+  // Login logic
   Future<void> _performLogin() async {
     try {
       setState(() {
         isLoading = true;
       });
 
-      // Check for empty fields
-      if (_emailController.text.trim().isEmpty || _passwordController.text.isEmpty) {
-        // Handle empty fields
-        print("Email and password cannot be empty");
+      // Check if any of the fields are empty
+      if (_unameController.text.isEmpty || _passwordController.text.isEmpty) {
+        _showSnackbar('All fields must be filled', Colors.red);
         return;
       }
 
-      // Sign in user with email and password
-      UserCredential userCredential = await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
+      // Retrieve user data from Firestore based on the entered username or email
+      var querySnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .where('username', isEqualTo: _unameController.text.trim())
+          .limit(1)
+          .get();
 
-      print("User logged in: ${userCredential.user?.email}");
-      Navigator.pushNamed(context, MainScreen.routeName);
+      // Check if user with the entered username exists
+      if (querySnapshot.docs.isNotEmpty) {
+        var userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
 
-      // Navigate to the home screen or perform other actions after successful login
-      // Navigator.pushNamed(context, HomeScreen.routeName);
-    } on FirebaseAuthException catch (e) {
+        // Compare entered password with the stored password
+        if (userData['password'] == _passwordController.text) {
+          // Success
+          print('User logged in: ${userData['username']}');
+          Navigator.pushReplacementNamed(context, SplashScreen.routeName).then((_) {
+            _showSnackbar('Login successful', Colors.green);
+          });
+          Navigator.pushReplacementNamed(context, HomeScreen.routeName);
+        } else {
+          // Incorrect password
+          _showSnackbar('Invalid Password', Colors.red);
+        }
+      } else {
+        // User not found
+        _showSnackbar('User not found.', Colors.red);
+      }
+    } catch (e) {
+      // Handle other login errors
+      print('Login error: $e');
+      _showSnackbar('Login failed. Please try again.', Colors.red);
+    } finally {
       setState(() {
         isLoading = false;
       });
-
-      // Handle login errors
-      if (e.code == 'user-not-found' || e.code == 'wrong-password') {
-        showDialog(
-          context: context,
-          builder: (context) {
-            return AlertDialog(
-              title: Text('Login Failed'),
-              content: Text('Invalid email or password.'),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.of(context).pop();
-                  },
-                  child: Text('OK'),
-                ),
-              ],
-            );
-          },
-        );
-      } else {
-        // Handle other login errors
-        print('Login error: ${e.code}, ${e.message}');
-      }
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -101,9 +107,9 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               const SizedBox(height: 10),
               CommonTextField(
-                controller: _emailController,
+                controller: _unameController,
                 prefixIcon: const Icon(Icons.account_circle),
-                hintText: "Enter email",
+                hintText: "Username",
               ),
               const SizedBox(height: 20),
               CommonTextField(
@@ -127,13 +133,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 300,
                   height: 55,
                   child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(backgroundColor: Colors.black),
-
-                    onPressed: isLoading ? null : _performLogin,
-                    child:
-                    isLoading
-                        ? CircularProgressIndicator()
-                        : Text("Login"),
+                    onPressed: _performLogin,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.black,
+                      fixedSize: Size(200, 50),
+                    ),
+                    child: Text("Login"),
                   ),
                 ),
               ),
@@ -143,18 +148,30 @@ class _LoginScreenState extends State<LoginScreen> {
               Align(
                 heightFactor: 5,
                 alignment: Alignment.center,
-                child: InkWell(
-                  onTap: () {
-                    Navigator.pushNamed(context, RegistrationScreen.routeName);
-                  },
-                  child: Text("Register now"),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text("Don't have an account?"),
+                    InkWell(
+                      onTap: () {
+                        Navigator.pushNamed(context, RegistrationScreen.routeName);
+                      },
+                      child: Text(
+                        " Register",
+                        style: TextStyle(
+                          color: Colors.blue, // You can customize the color
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
+
             ],
           ),
         ),
       ),
     );
-
   }
 }

@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import 'package:jot_notes/screens/home.dart';
 import 'package:jot_notes/screens/mainScreen.dart';
 
 import '../login/login_page.dart';
@@ -20,8 +21,8 @@ class RouteGenerator {
       case RegistrationScreen.routeName:
         return MaterialPageRoute(builder: (_) => const RegistrationScreen());
 
-      case MainScreen.routeName:
-        return MaterialPageRoute(builder: (_) => const MainScreen());
+      case HomeScreen.routeName:
+        return MaterialPageRoute(builder: (_) => const HomeScreen());
 
 
 
