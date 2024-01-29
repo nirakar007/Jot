@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:jot_notes/screens/home.dart';
 import 'package:jot_notes/screens/mainScreen.dart';
 
-import '../login/login_page.dart';
-import '../registration/registration_screen.dart';
-import '../splash/splash_screen.dart';
+import '../screens/login/login_page.dart';
+import '../screens/registration/registration_screen.dart';
+import '../screens/splash/splash_screen.dart';
 
 class RouteGenerator {
   static Route<dynamic>? generateRoute(RouteSettings settings) {

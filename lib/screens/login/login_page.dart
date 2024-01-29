@@ -3,10 +3,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:jot_notes/screens/home.dart';
 import 'package:jot_notes/screens/mainScreen.dart';
-import 'package:jot_notes/splash/splash_screen.dart';
+import 'package:jot_notes/screens/splash/splash_screen.dart';
 
 import '../registration/registration_screen.dart';
-import '../widgets/common_text_field.dart';
+import '../../widgets/common_text_field.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);

@@ -1,15 +1,15 @@
 import 'dart:math';
-
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 import '../constants/colors.dart';
 import '../model/note.dart';
 import 'edit.dart';
+import '../model/data.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({Key? key});
   static const String routeName = "/homescreen";
-
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -22,19 +22,26 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    filteredNotes = sampleNotes;
+    fetchNotesFromFirestore();
   }
 
-  List<Note> sortNotesByModifiedTime(List<Note> notes) {
-    if (sorted) {
-      notes.sort((a, b) => a.modifiedTime.compareTo(b.modifiedTime));
-    } else {
-      notes.sort((b, a) => a.modifiedTime.compareTo(b.modifiedTime));
+  Future<void> fetchNotesFromFirestore() async {
+    try {
+      final QuerySnapshot<Map<String, dynamic>> notesSnapshot =
+      await FirebaseFirestore.instance.collection('notes').get();
+
+      List<Note> notes = notesSnapshot.docs
+          .map((doc) => Note.fromMap(doc.data(), id: int.parse(doc.id)))
+          .toList();
+
+      setState(() {
+        sampleNotes = notes; // Update the global sampleNotes
+        filteredNotes = sampleNotes;
+      });
+    } catch (error) {
+      print('Error fetching notes: $error');
+      // Handle the error accordingly
     }
-
-    sorted = !sorted;
-
-    return notes;
   }
 
   getRandomColor() {
@@ -46,8 +53,8 @@ class _HomeScreenState extends State<HomeScreen> {
     setState(() {
       filteredNotes = sampleNotes
           .where((note) =>
-              note.content.toLowerCase().contains(searchText.toLowerCase()) ||
-              note.title.toLowerCase().contains(searchText.toLowerCase()))
+      note.content.toLowerCase().contains(searchText.toLowerCase()) ||
+          note.title.toLowerCase().contains(searchText.toLowerCase()))
           .toList();
     });
   }
@@ -75,8 +82,11 @@ class _HomeScreenState extends State<HomeScreen> {
                   padding: const EdgeInsets.all(15.0),
                   child: const Text(
                     'Notes',
-                    style: TextStyle(fontSize: 30, color: Colors.black87, fontWeight: FontWeight.bold, fontFamily: 'SyneMono'),
-
+                    style: TextStyle(
+                        fontSize: 30,
+                        color: Colors.black87,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'SyneMono'),
                   ),
                 ),
                 IconButton(
@@ -100,11 +110,12 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
             const SizedBox(
-              height: 20,
+              height: 15,
             ),
             TextField(
               onChanged: onSearchTextChanged,
-              style: const TextStyle(fontSize: 16, color: Colors.black54, fontFamily: 'SyneMono'),
+              style: const TextStyle(
+                  fontSize: 16, color: Colors.black54, fontFamily: 'SyneMono'),
               decoration: InputDecoration(
                 contentPadding: const EdgeInsets.symmetric(vertical: 12),
                 hintText: "Search notes...",
@@ -125,97 +136,89 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
             ),
-            SizedBox(height: 20,),
+            SizedBox(
+              height: 20,
+            ),
             Expanded(
                 child: ListView.builder(
-              padding: const EdgeInsets.only(top: 30),
-              itemCount: filteredNotes.length,
-              itemBuilder: (context, index) {
-                return Card(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  color: getRandomColor(),
-                  elevation: 3,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(10.0),
-                    child: ListTile(
-                      onTap: () async {
-                        final result = await Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (BuildContext context) =>
-                                EditScreen(note: filteredNotes[index]),
-                          ),
-                        );
-                        if (result != null) {
-                          setState(() {
-                            int originalIndex =
+                  padding: const EdgeInsets.only(top: 30),
+                  itemCount: filteredNotes.length,
+                  itemBuilder: (context, index) {
+                    return Card(
+                      margin: const EdgeInsets.only(bottom: 20),
+                      color: getRandomColor(),
+                      elevation: 3,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      child: Padding(
+                        padding: const EdgeInsets.all(10.0),
+                        child: ListTile(
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (BuildContext context) =>
+                                    EditScreen(note: filteredNotes[index]),
+                              ),
+                            );
+                            if (result != null) {
+                              setState(() {
+                                int originalIndex =
                                 sampleNotes.indexOf(filteredNotes[index]);
 
-                            sampleNotes[originalIndex] = Note(
-                                id: sampleNotes[originalIndex].id,
-                                title: result[0],
-                                content: result[1],
-                                modifiedTime: DateTime.now());
-                                
-                            filteredNotes[index] = Note(
-                                id: filteredNotes[index].id,
-                                title: result[0],
-                                content: result[1],
-                                modifiedTime: DateTime.now());
-                          });
-                        }
-                      },
-                      title: RichText(
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis,
-                        text: TextSpan(
-                            text: '${filteredNotes[index].title} \n',
-                            style: const TextStyle(
-                                color: Colors.black,
-                                fontFamily: 'SyneMono',
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                height: 2),
-                            children: [
-                              TextSpan(
-                                text: filteredNotes[index].content,
+                                sampleNotes[originalIndex] = Note(
+                                    id: sampleNotes[originalIndex].id,
+                                    title: result[0],
+                                    content: result[1],
+                                    modifiedTime: DateTime.now());
+
+                                filteredNotes[index] = Note(
+                                    id: filteredNotes[index].id,
+                                    title: result[0],
+                                    content: result[1],
+                                    modifiedTime: DateTime.now());
+                              });
+                            }
+                          },
+                          title: RichText(
+                            maxLines: 3,
+                            overflow: TextOverflow.ellipsis,
+                            text: TextSpan(
+                                text: '${filteredNotes[index].title} \n',
                                 style: const TextStyle(
                                     color: Colors.black,
                                     fontFamily: 'SyneMono',
-                                    fontWeight: FontWeight.normal,
-                                    fontSize: 14,
-                                    height: 3),
-                              )
-                            ]),
-                      ),
-                      // subtitle: Padding(
-                      //   padding: const EdgeInsets.only(top: 8.0),
-                      //   child: Text(
-                      //     'Edited: ${DateFormat('EEE MMM d, yyyy h:mm a').format(filteredNotes[index].modifiedTime)}',
-                      //     style: TextStyle(
-                      //         fontSize: 10,
-                      //         fontStyle: FontStyle.italic,
-                      //         color: Colors.grey.shade800),
-                      //   ),
-                      // ),
-                      trailing: IconButton(
-                        onPressed: () async {
-                          final result = await confirmDialog(context);
-                          if (result != null && result) {
-                            deleteNote(index);
-                          }
-                        },
-                        icon: const Icon(
-                          Icons.delete,
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 18,
+                                    height: 2),
+                                children: [
+                                  TextSpan(
+                                    text: filteredNotes[index].content,
+                                    style: const TextStyle(
+                                        color: Colors.black,
+                                        fontFamily: 'SyneMono',
+                                        fontWeight: FontWeight.normal,
+                                        fontSize: 14,
+                                        height: 2),
+                                  )
+                                ]),
+                          ),
+                          trailing: IconButton(
+                            onPressed: () async {
+                              final result = await confirmDialog(context);
+                              if (result != null && result) {
+                                deleteNote(index);
+                              }
+                            },
+                            icon: const Icon(
+                              Icons.delete,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              },
-            ))
+                    );
+                  },
+                ))
           ],
         ),
       ),
@@ -261,7 +264,7 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             title: const Text(
               'Are you sure you want to delete?',
-              style: TextStyle(color: Colors.white, fontFamily: 'SyneMono' ),
+              style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
             ),
             content: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -277,7 +280,8 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Text(
                           'Yes',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.black54, fontFamily: 'SyneMono'),
+                          style: TextStyle(
+                              color: Colors.black54, fontFamily: 'SyneMono'),
                         ),
                       )),
                   ElevatedButton(
@@ -285,17 +289,30 @@ class _HomeScreenState extends State<HomeScreen> {
                         Navigator.pop(context, false);
                       },
                       style:
-                          ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                      ElevatedButton.styleFrom(backgroundColor: Colors.black87),
                       child: const SizedBox(
                         width: 60,
                         child: Text(
                           'No',
                           textAlign: TextAlign.center,
-                          style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
+                          style: TextStyle(
+                              color: Colors.white, fontFamily: 'SyneMono'),
                         ),
                       )),
                 ]),
           );
         });
+  }
+
+  List<Note> sortNotesByModifiedTime(List<Note> notes) {
+    if (sorted) {
+      notes.sort((a, b) => a.modifiedTime.compareTo(b.modifiedTime));
+    } else {
+      notes.sort((b, a) => a.modifiedTime.compareTo(b.modifiedTime));
+    }
+
+    sorted = !sorted;
+
+    return notes;
   }
 }
