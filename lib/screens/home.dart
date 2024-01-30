@@ -6,6 +6,7 @@ import '../constants/colors.dart';
 import '../model/note.dart';
 import 'edit.dart';
 import '../model/data.dart';
+import '../repositories/note_repository.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key});
@@ -18,7 +19,7 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   List<Note> filteredNotes = [];
   bool sorted = false;
-
+  final NoteRepository _noteRepository = NoteRepository();
   @override
   void initState() {
     super.initState();
@@ -44,10 +45,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  getRandomColor() {
-    Random random = Random();
-    return backgroundColors[random.nextInt(backgroundColors.length)];
-  }
 
   void onSearchTextChanged(String searchText) {
     setState(() {
@@ -59,19 +56,25 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
-  void deleteNote(int index) {
-    setState(() {
+  void deleteNote(int index) async {
+    try {
       Note note = filteredNotes[index];
-      sampleNotes.remove(note);
-      filteredNotes.removeAt(index);
-    });
+      await _noteRepository.deleteNoteFromFirestore(note.id.toString());
+      setState(() {
+        sampleNotes.removeWhere((sampleNote) => sampleNote.id == note.id);
+        filteredNotes.removeAt(index);
+      });
+    } catch (e) {
+      print('Error deleting the note: $e');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey.shade50,
-      body: Padding(
+      backgroundColor: Colors.yellow.shade50,
+      body:
+      Padding(
         padding: const EdgeInsets.fromLTRB(16, 40, 16, 0),
         child: Column(
           children: [
@@ -146,10 +149,9 @@ class _HomeScreenState extends State<HomeScreen> {
                   itemBuilder: (context, index) {
                     return Card(
                       margin: const EdgeInsets.only(bottom: 20),
-                      color: getRandomColor(),
                       elevation: 3,
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10)),
+                          borderRadius: BorderRadius.circular(7)),
                       child: Padding(
                         padding: const EdgeInsets.all(10.0),
                         child: ListTile(

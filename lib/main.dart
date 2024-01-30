@@ -23,7 +23,6 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(appBarTheme: const AppBarTheme(color: Colors.red)),
       initialRoute: SplashScreen.routeName,
       onGenerateRoute: RouteGenerator.generateRoute,
     );
