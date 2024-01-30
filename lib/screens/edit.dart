@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:jot_notes/viewmodels/imageUpload_viewmodel.dart';
 import '../model/note.dart';
 
 class EditScreen extends StatefulWidget {
@@ -14,6 +17,8 @@ class EditScreen extends StatefulWidget {
 class _EditScreenState extends State<EditScreen> {
   TextEditingController _titleController = TextEditingController();
   TextEditingController _contentController = TextEditingController();
+  ImageUploadViewModel _imageUploadViewModel = ImageUploadViewModel();
+  XFile? _pickedImage;
 
   @override
   void initState() {
@@ -25,10 +30,28 @@ class _EditScreenState extends State<EditScreen> {
     super.initState();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final pickedImage = await ImagePicker().pickImage(source: source);
+      if (pickedImage != null) {
+        setState(() {
+          _pickedImage = pickedImage;
+        });
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+    }
+  }
+
   Future<void> _saveNoteToFirestore(Note note) async {
     try {
       final CollectionReference notesCollection =
-      FirebaseFirestore.instance.collection('notes');
+          FirebaseFirestore.instance.collection('notes');
+
+      // Update/save image in firestore
+      final imageUrl =
+          await _imageUploadViewModel.uploadImage(_pickedImage as File);
+      note.imageUrl = imageUrl;
 
       // Check if the note already exists in Firestore
       final existingNote = await notesCollection.doc(note.id.toString()).get();
@@ -87,6 +110,24 @@ class _EditScreenState extends State<EditScreen> {
                   ),
                 ),
               ),
+              IconButton(
+                onPressed: () async {
+                  await _pickImage(ImageSource.gallery);
+                },
+                padding: const EdgeInsets.all(0),
+                icon: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade800.withOpacity(.8),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.photo,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
             ],
           ),
           Expanded(
@@ -127,6 +168,7 @@ class _EditScreenState extends State<EditScreen> {
                     ),
                   ),
                 ),
+                if (_pickedImage != null) Image.file(File(_pickedImage!.path)),
               ],
             ),
           ),
@@ -139,6 +181,7 @@ class _EditScreenState extends State<EditScreen> {
             title: _titleController.text,
             content: _contentController.text,
             modifiedTime: DateTime.now(),
+            imageUrl: '',
           );
           _saveNoteToFirestore(updatedNote);
         },

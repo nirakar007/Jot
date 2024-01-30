@@ -5,12 +5,14 @@ class Note {
   String title;
   String content;
   DateTime modifiedTime;
+  String? imageUrl;
 
   Note({
     required this.id,
     required this.title,
     required this.content,
     required this.modifiedTime,
+    required this.imageUrl,
   });
 
   factory Note.fromMap(Map<String, dynamic> map, {required int id}) {
@@ -19,6 +21,7 @@ class Note {
       title: map['title'] ?? '',
       content: map['content'] ?? '',
       modifiedTime: (map['modifiedTime'] as Timestamp).toDate(),
+      imageUrl: 'imageUrl',
     );
   }
 
