@@ -1,8 +1,8 @@
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-import '../constants/colors.dart';
 import '../model/note.dart';
 import 'edit.dart';
 import '../model/data.dart';
@@ -23,35 +23,15 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    fetchNotesFromFirestore();
+    sorted = false;
   }
-
-  Future<void> fetchNotesFromFirestore() async {
-    try {
-      final QuerySnapshot<Map<String, dynamic>> notesSnapshot =
-      await FirebaseFirestore.instance.collection('notes').get();
-
-      List<Note> notes = notesSnapshot.docs
-          .map((doc) => Note.fromMap(doc.data(), id: int.parse(doc.id)))
-          .toList();
-
-      setState(() {
-        sampleNotes = notes; // Update the global sampleNotes
-        filteredNotes = sampleNotes;
-      });
-    } catch (error) {
-      print('Error fetching notes: $error');
-      // Handle the error accordingly
-    }
-  }
-
 
   void onSearchTextChanged(String searchText) {
     setState(() {
       filteredNotes = sampleNotes
           .where((note) =>
-      note.content.toLowerCase().contains(searchText.toLowerCase()) ||
-          note.title.toLowerCase().contains(searchText.toLowerCase()))
+              note.content.toLowerCase().contains(searchText.toLowerCase()) ||
+              note.title.toLowerCase().contains(searchText.toLowerCase()))
           .toList();
     });
   }
@@ -71,10 +51,32 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      stream: FirebaseFirestore.instance
+          .collection('notes')
+          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.hasData) {
+          List<Note> notes = snapshot.data!.docs
+              .map((doc) => Note.fromMap(doc.data(), id: int.parse(doc.id)))
+              .toList();
+
+          sampleNotes = notes;
+          filteredNotes = sampleNotes;
+
+          return buildUI(); // Your actual UI widget here
+        } else {
+          return CircularProgressIndicator(); // Or some loading indicator
+        }
+      },
+    );
+  }
+
+  Widget buildUI() {
     return Scaffold(
-      backgroundColor: Colors.yellow.shade50,
-      body:
-      Padding(
+      backgroundColor: Colors.grey.shade50,
+      body: Padding(
         padding: const EdgeInsets.fromLTRB(16, 40, 16, 0),
         child: Column(
           children: [
@@ -84,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.all(15.0),
                   child: const Text(
-                    'Notes',
+                    'Jot.',
                     style: TextStyle(
                         fontSize: 30,
                         color: Colors.black87,
@@ -144,83 +146,87 @@ class _HomeScreenState extends State<HomeScreen> {
             ),
             Expanded(
                 child: ListView.builder(
-                  padding: const EdgeInsets.only(top: 30),
-                  itemCount: filteredNotes.length,
-                  itemBuilder: (context, index) {
-                    return Card(
-                      margin: const EdgeInsets.only(bottom: 20),
-                      elevation: 3,
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(7)),
-                      child: Padding(
-                        padding: const EdgeInsets.all(10.0),
-                        child: ListTile(
-                          onTap: () async {
-                            final result = await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) =>
-                                    EditScreen(note: filteredNotes[index]),
-                              ),
-                            );
-                            if (result != null) {
-                              setState(() {
-                                int originalIndex =
+              padding: const EdgeInsets.only(top: 30),
+              itemCount: filteredNotes.length,
+              itemBuilder: (context, index) {
+                return Card(
+                  margin: const EdgeInsets.only(bottom: 20),
+                  elevation: 3,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(7)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(10.0),
+                    child: ListTile(
+                      onTap: () async {
+                        final result = await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (BuildContext context) =>
+                                EditScreen(note: filteredNotes[index]),
+                          ),
+                        );
+                        if (result != null) {
+                          setState(() {
+                            int originalIndex =
                                 sampleNotes.indexOf(filteredNotes[index]);
 
-                                sampleNotes[originalIndex] = Note(
-                                    id: sampleNotes[originalIndex].id,
-                                    title: result[0],
-                                    content: result[1],
-                                    modifiedTime: DateTime.now());
+                            sampleNotes[originalIndex] = Note(
+                                id: sampleNotes[originalIndex].id,
+                                title: result[0],
+                                content: result[1],
+                                modifiedTime: Timestamp.now(),
+                                imageUrl: '',
+                                userId: '');
 
-                                filteredNotes[index] = Note(
-                                    id: filteredNotes[index].id,
-                                    title: result[0],
-                                    content: result[1],
-                                    modifiedTime: DateTime.now());
-                              });
-                            }
-                          },
-                          title: RichText(
-                            maxLines: 3,
-                            overflow: TextOverflow.ellipsis,
-                            text: TextSpan(
-                                text: '${filteredNotes[index].title} \n',
+                            filteredNotes[index] = Note(
+                                id: filteredNotes[index].id,
+                                title: result[0],
+                                content: result[1],
+                                modifiedTime: Timestamp.now(),
+                                imageUrl: '',
+                                userId: '');
+                          });
+                        }
+                      },
+                      title: RichText(
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis,
+                        text: TextSpan(
+                            text: '${filteredNotes[index].title} \n',
+                            style: const TextStyle(
+                                color: Colors.black,
+                                fontFamily: 'SyneMono',
+                                fontWeight: FontWeight.bold,
+                                fontSize: 18,
+                                height: 2),
+                            children: [
+                              TextSpan(
+                                text: filteredNotes[index].content,
                                 style: const TextStyle(
                                     color: Colors.black,
                                     fontFamily: 'SyneMono',
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 18,
+                                    fontWeight: FontWeight.normal,
+                                    fontSize: 14,
                                     height: 2),
-                                children: [
-                                  TextSpan(
-                                    text: filteredNotes[index].content,
-                                    style: const TextStyle(
-                                        color: Colors.black,
-                                        fontFamily: 'SyneMono',
-                                        fontWeight: FontWeight.normal,
-                                        fontSize: 14,
-                                        height: 2),
-                                  )
-                                ]),
-                          ),
-                          trailing: IconButton(
-                            onPressed: () async {
-                              final result = await confirmDialog(context);
-                              if (result != null && result) {
-                                deleteNote(index);
-                              }
-                            },
-                            icon: const Icon(
-                              Icons.delete,
-                            ),
-                          ),
+                              )
+                            ]),
+                      ),
+                      trailing: IconButton(
+                        onPressed: () async {
+                          final result = await confirmDialog(context);
+                          if (result != null && result) {
+                            deleteNote(index);
+                          }
+                        },
+                        icon: const Icon(
+                          Icons.delete,
                         ),
                       ),
-                    );
-                  },
-                ))
+                    ),
+                  ),
+                );
+              },
+            ))
           ],
         ),
       ),
@@ -239,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   id: sampleNotes.length,
                   title: result[0],
                   content: result[1],
-                  modifiedTime: DateTime.now()));
+                  modifiedTime: Timestamp.now(), imageUrl: '', userId: ''));
               filteredNotes = sampleNotes;
             });
           }
@@ -254,67 +260,62 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Future<dynamic> confirmDialog(BuildContext context) {
-    return showDialog(
-        context: context,
-        builder: (BuildContext context) {
-          return AlertDialog(
-            backgroundColor: Colors.grey.shade900.withOpacity(.5),
-            icon: const Icon(
-              Icons.info,
-              color: Colors.grey,
-            ),
-            title: const Text(
-              'Are you sure you want to delete?',
-              style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
-            ),
-            content: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context, true);
-                      },
-                      style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white),
-                      child: const SizedBox(
-                        width: 60,
-                        child: Text(
-                          'Yes',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.black54, fontFamily: 'SyneMono'),
-                        ),
-                      )),
-                  ElevatedButton(
-                      onPressed: () {
-                        Navigator.pop(context, false);
-                      },
-                      style:
-                      ElevatedButton.styleFrom(backgroundColor: Colors.black87),
-                      child: const SizedBox(
-                        width: 60,
-                        child: Text(
-                          'No',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                              color: Colors.white, fontFamily: 'SyneMono'),
-                        ),
-                      )),
-                ]),
-          );
-        });
-  }
-
   List<Note> sortNotesByModifiedTime(List<Note> notes) {
-    if (sorted) {
-      notes.sort((a, b) => a.modifiedTime.compareTo(b.modifiedTime));
-    } else {
-      notes.sort((b, a) => a.modifiedTime.compareTo(b.modifiedTime));
-    }
-
+    bool sortAscending = !sorted;
+    notes.sort((a, b) => sortAscending
+        ? a.modifiedTime.compareTo(b.modifiedTime)
+        : b.modifiedTime.compareTo(a.modifiedTime));
     sorted = !sorted;
-
     return notes;
   }
+}
+
+Future<dynamic> confirmDialog(BuildContext context) {
+  return showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade900.withOpacity(.5),
+          icon: const Icon(
+            Icons.info,
+            color: Colors.grey,
+          ),
+          title: const Text(
+            'Are you sure you want to delete?',
+            style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
+          ),
+          content:
+              Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                child: const SizedBox(
+                  width: 60,
+                  child: Text(
+                    'Yes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.black54, fontFamily: 'SyneMono'),
+                  ),
+                )),
+            ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                child: const SizedBox(
+                  width: 60,
+                  child: Text(
+                    'No',
+                    textAlign: TextAlign.center,
+                    style:
+                        TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
+                  ),
+                )),
+          ]),
+        );
+      });
 }

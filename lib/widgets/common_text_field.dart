@@ -24,12 +24,7 @@ class _CommonTextFieldState extends State<CommonTextField> {
         hintText: widget.hintText,
         suffixIcon: widget.suffixIcon,
         prefixIcon: widget.prefixIcon,
-        enabledBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.grey, width: 0.5),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderSide: BorderSide(color: Colors.blue, width: 0.5),
-        ),
+
       ),
     );
   }

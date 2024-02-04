@@ -1,5 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_database/firebase_database.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 
 import '../login/login_page.dart';
@@ -16,23 +16,77 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
   TextEditingController unameController = TextEditingController();
   TextEditingController emailController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
-  TextEditingController confirmPasswordController = TextEditingController(); // Added for confirm password
+  TextEditingController confirmPasswordController = TextEditingController();
 
   final database = FirebaseFirestore.instance;
+
+  Future<void> registerUser(String email, String password) async {
+    try {
+      // Register the user using FirebaseAuth
+      UserCredential userCredential = await FirebaseAuth.instance.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      // Obtain the uid of the registered user
+      String uid = userCredential.user!.uid;
+
+      // Save additional user data to Firestore
+      await saveUserData(uid, unameController.text, email);
+
+      // Save the generated UID as a user ID for future note associations
+      FirebaseAuth.instance.currentUser?.updateDisplayName(uid);
+
+      // Show a success message in a green SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Successfully Registered!"),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Navigate to home screen or any other destination
+      Navigator.pushReplacementNamed(context, LoginScreen.routeName);
+    } catch (error) {
+      print("Registration error: $error");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("Failed to register. Please try again."),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+
+  Future<void> saveUserData(String uid, String username, String email) async {
+    try {
+      final CollectionReference usersCollection = FirebaseFirestore.instance.collection('users');
+
+      // Save user data to Firestore
+      await usersCollection.doc(uid).set({
+        'username': username,
+        'email': email,
+        // Add more user-related data as needed
+      });
+
+      print('User data saved successfully');
+    } catch (error) {
+      throw error;
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-          title: Text("Registration"),
+        title: Text("Registration"),
         backgroundColor: Colors.white,
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-
       body: SingleChildScrollView(
-
-
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Column(
@@ -48,7 +102,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
               Container(height: 25),
               Text("Password"),
               TextFormField(controller: passwordController, obscureText: true),
-              Container(height: 25), // Set obscureText to true for password
+              Container(height: 25),
               Text("Confirm password"),
               TextFormField(
                 controller: confirmPasswordController,
@@ -59,7 +113,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   }
                   return null;
                 },
-
               ),
               Container(height: 25),
               Align(
@@ -67,12 +120,10 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                 alignment: Alignment.center,
                 child: ElevatedButton(
                   onPressed: () async {
-                    // Check if any of the fields are empty
                     if (unameController.text.isEmpty ||
                         emailController.text.isEmpty ||
                         passwordController.text.isEmpty ||
                         confirmPasswordController.text.isEmpty) {
-                      // Show an error message if any field is empty
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("All fields must be filled"),
@@ -82,9 +133,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       return;
                     }
 
-                    // Check if passwords match
                     if (passwordController.text != confirmPasswordController.text) {
-                      // Show an error message if passwords don't match
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text("Passwords do not match"),
@@ -94,57 +143,31 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       return;
                     }
 
-                    // Check if the username already exists
-                    var usernameExistsQuery = await database
-                        .collection('users')
-                        .where('username', isEqualTo: unameController.text.trim())
-                        .get();
-
-                    if (usernameExistsQuery.docs.isNotEmpty) {
-                      // Show an error message if the username already exists
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Username already exists. Choose a different one."),
-                          backgroundColor: Colors.red,
-                        ),
-                      );
-                      return;
-                    }
-
-                    // Proceed with data entry if all checks pass
-                    var data = {
-                      "username": unameController.text,
-                      "email": emailController.text,
-                      "password": passwordController.text,
-                    };
-
-                    // firestore.collection('users').doc().set
-                    await database.collection('users').doc().set(data).then((value) {
+                    try {
+                      // Register the user and save additional data
+                      await registerUser(emailController.text, passwordController.text);
                       // Show a success message in a green SnackBar
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text("Successful"),
+                          content: Text("Successfully Registered!"),
                           backgroundColor: Colors.green,
                         ),
                       );
-
-                      print("Success");
-                      unameController.clear();
-                      emailController.clear();
-                      passwordController.clear();
-                      confirmPasswordController.clear();
-                    }).onError((error, stackTrace) {
-                      print(error.toString());
-                    });
+                    } catch (error) {
+                      print("Registration error: $error");
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Failed to register. Please try again."),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   },
-
-                  style:
-                  ElevatedButton.styleFrom(
-                      backgroundColor: Colors.black,
-                    fixedSize: Size(200,50),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.black,
+                    fixedSize: Size(200, 50),
                   ),
                   child: Text("Register"),
-
                 ),
               ),
               Align(
@@ -161,7 +184,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       child: Text(
                         " Log in",
                         style: TextStyle(
-                          color: Colors.blue, // You can customize the color
+                          color: Colors.blue,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -169,12 +192,13 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                   ],
                 ),
               ),
-
-
             ],
           ),
         ),
       ),
     );
   }
+
+
+
 }
