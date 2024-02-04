@@ -2,7 +2,6 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:jot_notes/screens/home.dart';
-import 'package:jot_notes/screens/mainScreen.dart';
 import 'package:jot_notes/screens/splash/splash_screen.dart';
 
 import '../registration/registration_screen.dart';
@@ -20,8 +19,9 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _unameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool visibility = false;
-  FirebaseAuth auth = FirebaseAuth.instance;
+  // FirebaseAuth auth = FirebaseAuth.instance;
   bool isLoading = false;
+  final database = FirebaseFirestore.instance;
 
   void _showSnackbar(String message, Color backgroundColor) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -45,33 +45,18 @@ class _LoginScreenState extends State<LoginScreen> {
         return;
       }
 
-      // Retrieve user data from Firestore based on the entered username or email
-      var querySnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .where('username', isEqualTo: _unameController.text.trim())
-          .limit(1)
-          .get();
+      // Sign in the user using FirebaseAuth
+      await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: _unameController.text.trim(),
+        password: _passwordController.text,
+      );
 
-      // Check if user with the entered username exists
-      if (querySnapshot.docs.isNotEmpty) {
-        var userData = querySnapshot.docs.first.data() as Map<String, dynamic>;
-
-        // Compare entered password with the stored password
-        if (userData['password'] == _passwordController.text) {
-          // Success
-          print('User logged in: ${userData['username']}');
-          Navigator.pushReplacementNamed(context, SplashScreen.routeName).then((_) {
-            _showSnackbar('Login successful', Colors.green);
-          });
-          Navigator.pushReplacementNamed(context, HomeScreen.routeName);
-        } else {
-          // Incorrect password
-          _showSnackbar('Invalid Password', Colors.red);
-        }
-      } else {
-        // User not found
-        _showSnackbar('User not found.', Colors.red);
-      }
+      // Success
+      print('User logged in: ${_unameController.text}');
+      Navigator.pushReplacementNamed(context, SplashScreen.routeName).then((_) {
+        _showSnackbar('Login successful', Colors.green);
+      });
+      Navigator.pushReplacementNamed(context, HomeScreen.routeName);
     } catch (e) {
       // Handle other login errors
       print('Login error: $e');
@@ -82,6 +67,7 @@ class _LoginScreenState extends State<LoginScreen> {
       });
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -109,12 +95,12 @@ class _LoginScreenState extends State<LoginScreen> {
               CommonTextField(
                 controller: _unameController,
                 prefixIcon: const Icon(Icons.account_circle),
-                hintText: "Username",
+                hintText: "enter email",
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 30),
               CommonTextField(
                 controller: _passwordController,
-                hintText: "Enter password",
+                hintText: "enter password",
                 suffixIcon: IconButton(
                   icon: visibility
                       ? const Icon(Icons.visibility)

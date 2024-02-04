@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -51,7 +52,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<QuerySnapshot<Map<String, dynamic>>>(
-      stream: FirebaseFirestore.instance.collection('notes').snapshots(),
+      stream: FirebaseFirestore.instance
+          .collection('notes')
+          .where('userId', isEqualTo: FirebaseAuth.instance.currentUser?.uid)
+          .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
           List<Note> notes = snapshot.data!.docs
@@ -82,7 +86,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 Padding(
                   padding: const EdgeInsets.all(15.0),
                   child: const Text(
-                    'Jot',
+                    'Jot.',
                     style: TextStyle(
                         fontSize: 30,
                         color: Colors.black87,
@@ -170,13 +174,17 @@ class _HomeScreenState extends State<HomeScreen> {
                                 id: sampleNotes[originalIndex].id,
                                 title: result[0],
                                 content: result[1],
-                                modifiedTime: DateTime.now(), imageUrl: '');
+                                modifiedTime: Timestamp.now(),
+                                imageUrl: '',
+                                userId: '');
 
                             filteredNotes[index] = Note(
                                 id: filteredNotes[index].id,
                                 title: result[0],
                                 content: result[1],
-                                modifiedTime: DateTime.now(), imageUrl: '');
+                                modifiedTime: Timestamp.now(),
+                                imageUrl: '',
+                                userId: '');
                           });
                         }
                       },
@@ -237,7 +245,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   id: sampleNotes.length,
                   title: result[0],
                   content: result[1],
-                  modifiedTime: DateTime.now(), imageUrl: ''));
+                  modifiedTime: Timestamp.now(), imageUrl: '', userId: ''));
               filteredNotes = sampleNotes;
             });
           }

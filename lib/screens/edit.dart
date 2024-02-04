@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
@@ -43,25 +44,46 @@ class _EditScreenState extends State<EditScreen> {
     }
   }
 
+
+
   Future<void> _saveNoteToFirestore(Note note) async {
     try {
       final CollectionReference notesCollection =
-          FirebaseFirestore.instance.collection('notes');
+      FirebaseFirestore.instance.collection('notes');
 
-      // Update/save image in firestore
-      final imageUrl =
-          await _imageUploadViewModel.uploadImage(_pickedImage as File);
-      note.imageUrl = imageUrl;
+      // Get current user
+      User? user = FirebaseAuth.instance.currentUser;
+
+      if (user == null) {
+        print('Current user is null. Aborting note save.');
+        return;
+      }
+
+      // Associate user ID with the note
+      note.userId = user.uid;
+
+      // Check if the image file exists
+      if (_pickedImage != null && await File(_pickedImage!.path).exists()) {
+        final imageUrl =
+        await _imageUploadViewModel.uploadImage(File(_pickedImage!.path));
+        note.imageUrl = imageUrl!;
+        print('Image uploaded successfully: $imageUrl');
+      } else {
+        print('No image to upload or file does not exist.');
+      }
 
       // Check if the note already exists in Firestore
-      final existingNote = await notesCollection.doc(note.id.toString()).get();
+      final existingNote =
+      await notesCollection.doc(note.id.toString()).get();
 
       if (existingNote.exists) {
         // Update the existing note
         await notesCollection.doc(note.id.toString()).update(note.toMap());
+        print('Note updated successfully.');
       } else {
         // Save a new note
         await notesCollection.doc(note.id.toString()).set(note.toMap());
+        print('New note saved successfully.');
       }
 
       // Show a success message (you can customize this part)
@@ -72,6 +94,9 @@ class _EditScreenState extends State<EditScreen> {
         ),
       );
     } catch (error) {
+      // Print the error for debugging
+      print('Error saving note: $error');
+
       // Handle the error (you can customize this part)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -81,6 +106,10 @@ class _EditScreenState extends State<EditScreen> {
       );
     }
   }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -109,6 +138,10 @@ class _EditScreenState extends State<EditScreen> {
                     color: Colors.white,
                   ),
                 ),
+              ),
+              SizedBox(
+                height: 30,
+                width: 10,
               ),
               IconButton(
                 onPressed: () async {
@@ -180,9 +213,11 @@ class _EditScreenState extends State<EditScreen> {
             id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch,
             title: _titleController.text,
             content: _contentController.text,
-            modifiedTime: DateTime.now(),
+            modifiedTime: Timestamp.now(),
             imageUrl: '',
+            userId: FirebaseAuth.instance.currentUser?.uid ?? '', // Assign the user ID
           );
+
           _saveNoteToFirestore(updatedNote);
         },
         elevation: 10,

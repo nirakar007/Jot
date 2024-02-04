@@ -1,21 +1,26 @@
 import 'dart:io';
-import 'package:flutter/material.dart';
-import '../repositories/image_repository.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 
+class ImageUploadViewModel {
+  final _storage = FirebaseStorage.instance;
 
-class ImageUploadViewModel with ChangeNotifier{
-  final ImageRepository _imageRepository = ImageRepository();
+  Future<String?> uploadImage(File file) async {
+    try {
+      String fileName = DateTime.now().millisecondsSinceEpoch.toString();
+      Reference reference = _storage.ref().child('images/$fileName');
+      UploadTask uploadTask = reference.putFile(file);
 
-  String? _uploadImageUrl;
-  String? get uploadedImageUrl => _uploadImageUrl;
+      // Wait for the upload to complete
+      await uploadTask;
 
-  Future<String?> uploadImage(File imageFile) async {
-    try{
-      _uploadImageUrl = await _imageRepository.uploadImage(imageFile);
-      notifyListeners();
-    }
-    catch(e){
-      print('Error uploading image: $e');
+      // Get the download URL
+      String imageUrl = await reference.getDownloadURL();
+
+      return imageUrl;
+    } catch (error) {
+      print("Image upload error: $error");
+      return null;
     }
   }
+
 }
