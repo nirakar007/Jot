@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _unameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool visibility = false;
-  // FirebaseAuth auth = FirebaseAuth.instance;
   bool isLoading = false;
   final database = FirebaseFirestore.instance;
 
@@ -53,9 +52,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
       // Success
       print('User logged in: ${_unameController.text}');
-      Navigator.pushReplacementNamed(context, SplashScreen.routeName).then((_) {
-        _showSnackbar('Login successful', Colors.green);
-      });
       Navigator.pushReplacementNamed(context, HomeScreen.routeName);
     } catch (e) {
       // Handle other login errors
@@ -95,20 +91,23 @@ class _LoginScreenState extends State<LoginScreen> {
               CommonTextField(
                 controller: _unameController,
                 prefixIcon: const Icon(Icons.account_circle),
-                hintText: "enter email",
+                hintText: "Enter email",
               ),
               const SizedBox(height: 30),
               CommonTextField(
                 controller: _passwordController,
-                hintText: "enter password",
+                obscureText: visibility,
+                hintText: "Enter password",
                 suffixIcon: IconButton(
                   icon: visibility
                       ? const Icon(Icons.visibility)
                       : const Icon(Icons.visibility_off),
                   onPressed: () {
+                    print('Visibility toggle pressed');
                     setState(() {
                       visibility = !visibility;
                     });
+                    print('Visibility: $visibility');
                   },
                 ),
                 prefixIcon: Icon(Icons.key),

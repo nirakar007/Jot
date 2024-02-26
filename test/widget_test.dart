@@ -1,30 +1,40 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-
-import 'package:jot_notes/main.dart';
+import 'package:jot_notes/main.dart'; // Update with your app's main file
+import 'package:jot_notes/screens/edit.dart'; // Update with the correct path
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
+  testWidgets('App UI Test', (WidgetTester tester) async {
     // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+    await tester.pumpWidget(MyApp()); // Replace MyApp() with your app's main widget
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Wait for the main screen to load
+    await tester.pumpAndSettle();
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Find a widget on the main screen and verify it exists
+    expect(find.byKey(Key('mainScreenTitle')), findsOneWidget);
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    // Tap on a button to navigate to the edit screen
+    await tester.tap(find.byIcon(Icons.edit));
+    await tester.pumpAndSettle();
+
+    // Find widgets on the edit screen and verify they exist
+    expect(find.byKey(Key('editScreenTitle')), findsOneWidget);
+    expect(find.byType(TextField), findsWidgets);
+
+    // Enter text into a TextField
+    await tester.enterText(find.byType(TextField).first, 'Test Title');
+    await tester.enterText(find.byType(TextField).last, 'Test Content');
+
+    // Tap on the save button
+    await tester.tap(find.byIcon(Icons.save));
+    await tester.pumpAndSettle();
+
+    // Verify that the note is saved successfully
+    expect(find.text('Note saved successfully.'), findsOneWidget);
+
+    // Verify that the saved note is displayed on the main screen
+    expect(find.text('Test Title'), findsOneWidget);
+    expect(find.text('Test Content'), findsOneWidget);
   });
 }

@@ -1,7 +1,7 @@
-import 'dart:math';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:jot_notes/screens/login/login_page.dart';
 
 import '../model/note.dart';
 import 'edit.dart';
@@ -18,8 +18,10 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Note> filteredNotes = [];
+  List<Note> allNotes = [];
   bool sorted = false;
   final NoteRepository _noteRepository = NoteRepository();
+  final FirestoreService firestoreService = FirestoreService();
   @override
   void initState() {
     super.initState();
@@ -27,13 +29,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void onSearchTextChanged(String searchText) {
+    print('Search text: $searchText');
     setState(() {
-      filteredNotes = sampleNotes
+      filteredNotes = allNotes
           .where((note) =>
               note.content.toLowerCase().contains(searchText.toLowerCase()) ||
               note.title.toLowerCase().contains(searchText.toLowerCase()))
           .toList();
     });
+    print('Filtered Notes: $filteredNotes');
   }
 
   void deleteNote(int index) async {
@@ -41,11 +45,72 @@ class _HomeScreenState extends State<HomeScreen> {
       Note note = filteredNotes[index];
       await _noteRepository.deleteNoteFromFirestore(note.id.toString());
       setState(() {
-        sampleNotes.removeWhere((sampleNote) => sampleNote.id == note.id);
+        allNotes.removeWhere((sampleNote) => sampleNote.id == note.id);
         filteredNotes.removeAt(index);
       });
     } catch (e) {
       print('Error deleting the note: $e');
+    }
+  }
+
+  void _logOut() async {
+    bool confirmLogout = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.grey.shade900.withOpacity(.5),
+          icon: const Icon(
+            Icons.info,
+            color: Colors.grey,
+          ),
+          title: const Text(
+            'Are you sure you want to log out?',
+            style: TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
+          ),
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, true);
+                },
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.white),
+                child: const SizedBox(
+                  width: 60,
+                  child: Text(
+                    'Yes',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                        color: Colors.black54, fontFamily: 'SyneMono'),
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context, false);
+                },
+                style:
+                    ElevatedButton.styleFrom(backgroundColor: Colors.black87),
+                child: const SizedBox(
+                  width: 60,
+                  child: Text(
+                    'No',
+                    textAlign: TextAlign.center,
+                    style:
+                        TextStyle(color: Colors.white, fontFamily: 'SyneMono'),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (confirmLogout == true) {
+      print('Logging out...');
+      await FirebaseAuth.instance.signOut();
+      Navigator.pushReplacementNamed(context, LoginScreen.routeName);
     }
   }
 
@@ -58,16 +123,18 @@ class _HomeScreenState extends State<HomeScreen> {
           .snapshots(),
       builder: (context, snapshot) {
         if (snapshot.hasData) {
+          print('Snapshot data received: ${snapshot.data}');
           List<Note> notes = snapshot.data!.docs
               .map((doc) => Note.fromMap(doc.data(), id: int.parse(doc.id)))
               .toList();
 
-          sampleNotes = notes;
-          filteredNotes = sampleNotes;
+          allNotes = notes;
+          filteredNotes = allNotes;
 
-          return buildUI(); // Your actual UI widget here
+          return buildUI();
         } else {
-          return CircularProgressIndicator(); // Or some loading indicator
+          return CircularProgressIndicator(
+              backgroundColor: Colors.grey, color: Colors.white);
         }
       },
     );
@@ -96,9 +163,8 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
                 IconButton(
                     onPressed: () {
-                      setState(() {
-                        filteredNotes = sortNotesByModifiedTime(filteredNotes);
-                      });
+                      print("burger pressed");
+                      _logOut();
                     },
                     padding: const EdgeInsets.all(0),
                     icon: Container(
@@ -168,10 +234,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         if (result != null) {
                           setState(() {
                             int originalIndex =
-                                sampleNotes.indexOf(filteredNotes[index]);
+                                allNotes.indexOf(filteredNotes[index]);
 
-                            sampleNotes[originalIndex] = Note(
-                                id: sampleNotes[originalIndex].id,
+                            allNotes[originalIndex] = Note(
+                                id: allNotes[originalIndex].id,
                                 title: result[0],
                                 content: result[1],
                                 modifiedTime: Timestamp.now(),
@@ -241,12 +307,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
           if (result != null) {
             setState(() {
-              sampleNotes.add(Note(
-                  id: sampleNotes.length,
+              allNotes.add(Note(
+                  id: allNotes.length,
                   title: result[0],
                   content: result[1],
-                  modifiedTime: Timestamp.now(), imageUrl: '', userId: ''));
-              filteredNotes = sampleNotes;
+                  modifiedTime: Timestamp.now(),
+                  imageUrl: '',
+                  userId: ''));
+              filteredNotes = allNotes;
             });
           }
         },

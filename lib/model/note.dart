@@ -5,7 +5,7 @@ class Note {
   final String title;
   final String content;
   late final Timestamp modifiedTime;
-  late final String? imageUrl;
+  final String? imageUrl;
   String userId;
 
   Note({

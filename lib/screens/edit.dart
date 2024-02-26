@@ -4,11 +4,12 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:jot_notes/viewmodels/imageUpload_viewmodel.dart';
+import 'package:jot_notes/services/image_upload.dart';
 import '../model/note.dart';
 
 class EditScreen extends StatefulWidget {
   final Note? note;
+
   const EditScreen({Key? key, this.note}) : super(key: key);
 
   @override
@@ -18,8 +19,9 @@ class EditScreen extends StatefulWidget {
 class _EditScreenState extends State<EditScreen> {
   TextEditingController _titleController = TextEditingController();
   TextEditingController _contentController = TextEditingController();
-  ImageUploadViewModel _imageUploadViewModel = ImageUploadViewModel();
+  final FileUpload _fileUpload = FileUpload();
   XFile? _pickedImage;
+  late Note note;
 
   @override
   void initState() {
@@ -31,26 +33,47 @@ class _EditScreenState extends State<EditScreen> {
     super.initState();
   }
 
+
+
+  Future<String?> _uploadImageToFirebaseStorage(File imageFile) async {
+    try {
+      ImagePath? imageUrl = await _fileUpload.uploadImage(selectedPath: imageFile.path);
+      print(imageUrl?.imageUrl);
+      return imageUrl?.imageUrl;
+    } catch (e) {
+      print('Error uploading image to Firebase Storage: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error uploading image')));
+      return null;
+    }
+  }
+
+
   Future<void> _pickImage(ImageSource source) async {
     try {
-      final pickedImage = await ImagePicker().pickImage(source: source);
-      if (pickedImage != null) {
-        setState(() {
-          _pickedImage = pickedImage;
-        });
+      final pickedImage = await ImagePicker().pickImage(source: source, imageQuality: 100);
+      if (pickedImage == null) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("No image selected")));
+        return;
       }
+
+      setState(() {
+        _pickedImage = pickedImage;
+      });
+
+      // Upload the picked image to Firebase Storage
+      await _uploadImageToFirebaseStorage(File(pickedImage.path));
+
     } catch (e) {
-      print('Error picking image: $e');
+      print('Error picking/uploading image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("Error picking/uploading image")));
     }
   }
 
 
 
-  Future<void> _saveNoteToFirestore(Note note) async {
+  Future<void> _saveNoteToFirestore(String? imageUrl) async {
     try {
-      final CollectionReference notesCollection =
-      FirebaseFirestore.instance.collection('notes');
-
+      final CollectionReference notesCollection = FirebaseFirestore.instance.collection('notes');
       // Get current user
       User? user = FirebaseAuth.instance.currentUser;
 
@@ -59,34 +82,30 @@ class _EditScreenState extends State<EditScreen> {
         return;
       }
 
-      // Associate user ID with the note
-      note.userId = user.uid;
-
-      // Check if the image file exists
-      if (_pickedImage != null && await File(_pickedImage!.path).exists()) {
-        final imageUrl =
-        await _imageUploadViewModel.uploadImage(File(_pickedImage!.path));
-        note.imageUrl = imageUrl!;
-        print('Image uploaded successfully: $imageUrl');
-      } else {
-        print('No image to upload or file does not exist.');
-      }
+      // Create a new Note object
+      final updatedNote = Note(
+        id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch,
+        title: _titleController.text,
+        content: _contentController.text,
+        modifiedTime: Timestamp.now(),
+        imageUrl: imageUrl ?? '', // Use an empty string if imageUrl is null
+        userId: user.uid,
+      );
 
       // Check if the note already exists in Firestore
-      final existingNote =
-      await notesCollection.doc(note.id.toString()).get();
+      final existingNote = await notesCollection.doc(updatedNote.id.toString()).get();
 
       if (existingNote.exists) {
         // Update the existing note
-        await notesCollection.doc(note.id.toString()).update(note.toMap());
+        await notesCollection.doc(updatedNote.id.toString()).update(updatedNote.toMap());
         print('Note updated successfully.');
       } else {
         // Save a new note
-        await notesCollection.doc(note.id.toString()).set(note.toMap());
+        await notesCollection.doc(updatedNote.id.toString()).set(updatedNote.toMap());
         print('New note saved successfully.');
       }
 
-      // Show a success message (you can customize this part)
+      // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Note saved successfully.'),
@@ -96,8 +115,6 @@ class _EditScreenState extends State<EditScreen> {
     } catch (error) {
       // Print the error for debugging
       print('Error saving note: $error');
-
-      // Handle the error (you can customize this part)
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Failed to save note. Please try again.'),
@@ -106,8 +123,6 @@ class _EditScreenState extends State<EditScreen> {
       );
     }
   }
-
-
 
 
 
@@ -208,22 +223,24 @@ class _EditScreenState extends State<EditScreen> {
         ]),
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          final updatedNote = Note(
-            id: widget.note?.id ?? DateTime.now().millisecondsSinceEpoch,
-            title: _titleController.text,
-            content: _contentController.text,
-            modifiedTime: Timestamp.now(),
-            imageUrl: '',
-            userId: FirebaseAuth.instance.currentUser?.uid ?? '', // Assign the user ID
-          );
+        onPressed: () async {
+          String? imageUrl = await _uploadImageToFirebaseStorage(File(_pickedImage!.path));
 
-          _saveNoteToFirestore(updatedNote);
+          if (imageUrl != null) {
+            await _saveNoteToFirestore(imageUrl);
+          } else {
+            // Handle the case when image upload fails
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Image upload failed. Note will be saved without an image.')),
+            );
+            await _saveNoteToFirestore('');
+          }
         },
         elevation: 10,
         backgroundColor: Colors.grey.shade800,
         child: const Icon(Icons.save),
       ),
+
     );
   }
 }

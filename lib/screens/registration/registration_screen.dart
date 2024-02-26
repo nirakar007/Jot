@@ -58,7 +58,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
     }
   }
 
-
   Future<void> saveUserData(String uid, String username, String email) async {
     try {
       final CollectionReference usersCollection = FirebaseFirestore.instance.collection('users');
@@ -67,7 +66,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       await usersCollection.doc(uid).set({
         'username': username,
         'email': email,
-        // Add more user-related data as needed
       });
 
       print('User data saved successfully');
@@ -75,7 +73,6 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       throw error;
     }
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -133,6 +130,16 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       return;
                     }
 
+                    if (passwordController.text.length < 5) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text("Password must be at least 5 characters long"),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                      return;
+                    }
+
                     if (passwordController.text != confirmPasswordController.text) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
@@ -147,12 +154,7 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
                       // Register the user and save additional data
                       await registerUser(emailController.text, passwordController.text);
                       // Show a success message in a green SnackBar
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text("Successfully Registered!"),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
+
                     } catch (error) {
                       print("Registration error: $error");
                       ScaffoldMessenger.of(context).showSnackBar(
@@ -198,7 +200,4 @@ class _RegistrationScreenState extends State<RegistrationScreen> {
       ),
     );
   }
-
-
-
 }

@@ -1,6 +1,7 @@
 import 'dart:math';
 
 import 'package:jot_notes/route/route_generator.dart';
+import 'package:jot_notes/screens/home.dart';
 import 'package:jot_notes/screens/splash/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/cupertino.dart';

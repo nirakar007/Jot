@@ -6,9 +6,15 @@ class CommonTextField extends StatefulWidget {
   String? hintText;
   Widget? suffixIcon;
   Widget? prefixIcon;
-   CommonTextField({super.key,
+
+
+  CommonTextField({
+    super.key,
      this.prefixIcon,
-     required this.controller,this.obscureText = false,this.hintText,this.suffixIcon});
+     required this.controller,
+     this.obscureText = false,
+     this.hintText,
+     this.suffixIcon});
 
   @override
   State<CommonTextField> createState() => _CommonTextFieldState();
